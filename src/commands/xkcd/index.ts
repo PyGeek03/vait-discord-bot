@@ -3,8 +3,9 @@ import {
   EmbedBuilder,
   SlashCommandBuilder,
 } from 'discord.js';
+import { getRandomRGBValues } from '../../utils';
 import { Command } from '../command';
-import { fetchRandomComic } from './fetchComic';
+import { getRandomComic } from './fetchComic';
 
 const data = new SlashCommandBuilder()
   .setName('xkcd')
@@ -13,19 +14,24 @@ const data = new SlashCommandBuilder()
 export const getXKCD = async (interaction: ChatInputCommandInteraction) => {
   await interaction.deferReply();
 
-  const comic = await fetchRandomComic();
-  if (!comic) {
+  const comicPayload = await getRandomComic();
+  if (comicPayload.name === 'GetRandomComicFailed') {
+    console.log(comicPayload.message);
     await interaction.editReply('Error getting comic');
     return;
   }
 
-  const embed = new EmbedBuilder({
-    color: 0x0072a8,
-    title: comic.title,
-    footer: {
-      text: `Comics by xkcd.com`,
-    },
-  }).setImage(comic.img);
+  const embed = new EmbedBuilder()
+    .setImage(comicPayload.comic.img)
+    .setTitle(comicPayload.comic.title)
+    .setURL(comicPayload.comic.source)
+    .setDescription(comicPayload.comic.alt)
+    .setFooter({
+      text: `https://xkcd.com • ${comicPayload.comic.date}`,
+      iconURL:
+        'https://cdn.discordapp.com/attachments/826236555294146563/1030015171151810601/919f27-2.png',
+    })
+    .setColor(getRandomRGBValues());
 
   await interaction.editReply({ embeds: [embed] });
 };

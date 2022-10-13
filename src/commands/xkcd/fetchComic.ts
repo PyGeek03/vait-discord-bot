@@ -6,39 +6,92 @@ const XKCD_API_URL = 'https://xkcd.com/info.0.json';
 export interface Comic {
   title: string;
   img: string;
+  alt: string | null;
+  date: string;
+  source: string;
 }
 
-const fetchTodayNumber = async (): Promise<number | undefined> => {
-  try {
-    const response = await fetch(XKCD_API_URL); // fetch today's comic number
-    const body = await response.json();
+type GetRandomComicPayload =
+  | { name: 'GetRandomComicSuccess'; comic: Comic }
+  | { name: 'GetRandomComicFailed'; message: string };
 
-    if (body) {
-      return Number(body.num);
-    }
-  } catch (error) {
-    console.error('THERE IS AN ERROR DOWNLOADING COMIC', error);
+export const getRandomComic = async (): Promise<GetRandomComicPayload> => {
+  const getTodayNumberPayload = await getTodayNumber();
+  if (getTodayNumberPayload.name === 'GetTodayNumberFailed') {
+    return {
+      name: 'GetRandomComicFailed',
+      message: getTodayNumberPayload.message,
+    };
   }
+
+  const randomComicNumber = getRandomIntInclusive(
+    1,
+    getTodayNumberPayload.number
+  );
+
+  const todayComic = await getComic(randomComicNumber);
+
+  if (todayComic.name === 'GetComicFailed') {
+    return {
+      name: 'GetRandomComicFailed',
+      message: todayComic.message,
+    };
+  }
+
+  return {
+    name: 'GetRandomComicSuccess',
+    comic: todayComic.comic,
+  };
 };
 
-export const fetchRandomComic = async (): Promise<Comic | undefined> => {
+type GetTodayNumberPayload =
+  | { name: 'GetTodayNumberSuccess'; number: number }
+  | { name: 'GetTodayNumberFailed'; message: string };
+
+const getTodayNumber = async (): Promise<GetTodayNumberPayload> => {
+  // fetch today's comic number
+  return fetch(XKCD_API_URL)
+    .then((res) => res.json())
+    .then((body) => {
+      if (!body) throw new Error('There is something wrong!');
+
+      return {
+        name: 'GetTodayNumberSuccess' as any,
+        number: Number(body.num),
+      };
+    })
+    .catch((error) => {
+      return {
+        name: 'GetTodayNumberFailed',
+        message: error.message,
+      };
+    });
+};
+
+type GetComicPayload =
+  | { name: 'GetComicSuccess'; comic: Comic }
+  | { name: 'GetComicFailed'; message: string };
+
+const getComic = async (comicNumber: number): Promise<GetComicPayload> => {
+  const comicURL = `https://xkcd.com/${comicNumber}/info.0.json`;
   try {
-    const todayNumber = await fetchTodayNumber();
-    if (!todayNumber) {
-      return undefined;
-    }
-    const randomComicNumber = getRandomIntInclusive(1, todayNumber);
-    const comicURL = `https://xkcd.com/${randomComicNumber}/info.0.json`;
     const response = await fetch(comicURL); // fetch today's comic number
     const body = await response.json();
-
-    if (body) {
-      return {
-        img: body.img,
+    if (!body) throw new Error('There is something wrong!');
+    return {
+      name: 'GetComicSuccess',
+      comic: {
+        img: body.img.replace('.png', '_2x.png'),
         title: body.title,
-      };
-    }
-  } catch (error) {
-    console.error('THERE IS AN ERROR DOWNLOADING COMIC', error);
+        alt: body.alt,
+        date: `${body.day}/${body.month}/${body.year}`,
+        source: `https://xkcd.com/${comicNumber}/`,
+      },
+    };
+  } catch (error: any) {
+    return {
+      name: 'GetComicFailed',
+      message: error.message,
+    };
   }
 };
