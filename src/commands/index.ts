@@ -13,6 +13,7 @@ import getdisclaimer from './disclaimer';
 import referral from './referral';
 import roles from './roles';
 import playPowerball from './powerball';
+import xkcd from './xkcd';
 
 export const commandList: Command[] = [
   allCap,
@@ -29,6 +30,7 @@ export const commandList: Command[] = [
   getdisclaimer,
   referral,
   roles,
+  xkcd,
 ];
 
 export * from './reputation';
