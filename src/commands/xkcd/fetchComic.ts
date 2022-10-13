@@ -81,7 +81,7 @@ const getComic = async (comicNumber: number): Promise<GetComicPayload> => {
     return {
       name: 'GetComicSuccess',
       comic: {
-        img: body.img.replace('.png', '_2x.png'),
+        img: body.img,
         title: body.title,
         alt: body.alt,
         date: `${body.day}/${body.month}/${body.year}`,
